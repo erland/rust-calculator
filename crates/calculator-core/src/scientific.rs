@@ -241,9 +241,7 @@ impl Parser<'_> {
         }
         if digits == 0 {
             return Err(match self.input.get(self.pos) {
-                None | Some(b')' | b'+' | b'-' | b'*' | b'/' | b'^') => {
-                    CalcError::UnexpectedToken
-                }
+                None | Some(b')' | b'+' | b'-' | b'*' | b'/' | b'^') => CalcError::UnexpectedToken,
                 Some(_) => CalcError::InvalidCharacter,
             });
         }
