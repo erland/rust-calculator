@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('installs a complete offline precache and calculates without a network', async ({ page, context }) => {
   await page.goto('/');
-  await expect(page.getByRole('status')).toContainText('Redo');
+  await expect(page.locator('.topline .status')).toContainText('Redo');
   const manifestUrl = await page.locator('link[rel="manifest"]').getAttribute('href');
   expect(manifestUrl).toBeTruthy();
   const manifest = await page.evaluate(async href => (await (await fetch(href!)).json()) as { display: string; icons: Array<{ sizes: string }> }, manifestUrl);
@@ -38,7 +38,7 @@ test('installs a complete offline precache and calculates without a network', as
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('status')).toContainText('Redo');
+  await expect(page.locator('.topline .status')).toContainText('Redo');
   await expect(page.getByRole('button', { name: 'Vetenskaplig' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'RAD', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.history-entry')).toHaveCount(2);
@@ -49,7 +49,7 @@ test('installs a complete offline precache and calculates without a network', as
 
 test('can clear private calculator data without clearing unrelated origin keys', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('status')).toContainText('Redo');
+  await expect(page.locator('.topline .status')).toContainText('Redo');
   await page.evaluate(() => localStorage.setItem('unrelated-key', 'preserve'));
   await page.locator('#expression').fill('1+1');
   await page.getByRole('button', { name: 'Beräkna' }).click();
