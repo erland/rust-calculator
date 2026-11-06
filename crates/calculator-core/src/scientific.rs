@@ -347,9 +347,18 @@ mod tests {
         ] {
             assert!(evaluate(input, AngleMode::Radians).is_err(), "{input}");
         }
-        assert_eq!(evaluate("sqrt(-1)", AngleMode::Radians), Err(CalcError::DomainError));
-        assert_eq!(evaluate("171!", AngleMode::Radians), Err(CalcError::DomainError));
-        assert_eq!(evaluate("1/0", AngleMode::Radians), Err(CalcError::DivisionByZero));
+        assert_eq!(
+            evaluate("sqrt(-1)", AngleMode::Radians),
+            Err(CalcError::DomainError)
+        );
+        assert_eq!(
+            evaluate("171!", AngleMode::Radians),
+            Err(CalcError::DomainError)
+        );
+        assert_eq!(
+            evaluate("1/0", AngleMode::Radians),
+            Err(CalcError::DivisionByZero)
+        );
     }
     #[test]
     fn inherited_arithmetic() {
