@@ -1,9 +1,8 @@
 //! Shared deterministic f64 calculator engine, used natively and through WebAssembly.
-//! Grammar: expression -> term (('+' | '-') term)*;
-//! term -> unary (('*' | '/') unary)*;
-//! unary -> ('+' | '-') unary | primary;
-//! primary -> decimal | '(' expression ')'.
-//! Later DEV steps add powers and scientific operators.
+//! Bounded arithmetic and scientific expressions; no arbitrary code execution.
+
+mod scientific;
+pub use scientific::AngleMode;
 const MAX_LENGTH: usize = 4096;
 const MAX_DEPTH: usize = 64;
 const MAX_OPERATIONS: usize = 4096;
@@ -19,6 +18,9 @@ pub enum CalcError {
     DivisionByZero,
     NonFiniteResult,
     TooComplex,
+    DomainError,
+    UnknownFunction,
+    InvalidArguments,
 }
 
 impl CalcError {
@@ -33,6 +35,9 @@ impl CalcError {
             Self::DivisionByZero => "Division med noll är inte tillåten.",
             Self::NonFiniteResult => "Resultatet ligger utanför det tillåtna talområdet.",
             Self::TooComplex => "Uttrycket är för komplext.",
+            Self::DomainError => "Funktionen är inte definierad för det angivna värdet.",
+            Self::UnknownFunction => "Okänd matematisk funktion.",
+            Self::InvalidArguments => "Fel antal argument till funktionen.",
         }
     }
 }
@@ -53,168 +58,14 @@ pub fn add(lhs: f64, rhs: f64) -> Result<f64, &'static str> {
     finite(lhs + rhs).map_err(|_| "Result exceeds the supported numeric range")
 }
 
-/// Evaluate a limited arithmetic expression. Both '.' and ',' are decimal separators.
-/// In particular, this is NOT arbitrary Rust/JavaScript execution.
+/// Evaluate using radians by default; preserves the DEV-002 API.
 pub fn evaluate(input: &str) -> Result<f64, CalcError> {
-    if input.len() > MAX_LENGTH {
-        return Err(CalcError::ExpressionTooLong);
-    }
-    if input.trim().is_empty() {
-        return Err(CalcError::EmptyExpression);
-    }
-    let mut parser = Parser {
-        input: input.as_bytes(),
-        pos: 0,
-        operations: 0,
-    };
-    let value = parser.expression(0)?;
-    parser.skip_spaces();
-    if parser.pos != parser.input.len() {
-        return Err(CalcError::UnexpectedToken);
-    }
-    finite(value)
+    scientific::evaluate(input, AngleMode::Radians)
 }
 
-struct Parser<'a> {
-    input: &'a [u8],
-    pos: usize,
-    operations: usize,
-}
-
-impl Parser<'_> {
-    fn skip_spaces(&mut self) {
-        while self.pos < self.input.len() && self.input[self.pos].is_ascii_whitespace() {
-            self.pos += 1;
-        }
-    }
-
-    fn peek(&mut self) -> Option<u8> {
-        self.skip_spaces();
-        self.input.get(self.pos).copied()
-    }
-
-    fn consume(&mut self, ch: u8) -> bool {
-        if self.peek() == Some(ch) {
-            self.pos += 1;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn count_operation(&mut self) -> Result<(), CalcError> {
-        self.operations += 1;
-        if self.operations > MAX_OPERATIONS {
-            Err(CalcError::TooComplex)
-        } else {
-            Ok(())
-        }
-    }
-
-    fn expression(&mut self, depth: usize) -> Result<f64, CalcError> {
-        let mut left = self.term(depth)?;
-        loop {
-            let op = match self.peek() {
-                Some(b'+') => b'+',
-                Some(b'-') => b'-',
-                _ => return Ok(left),
-            };
-            self.pos += 1;
-            self.count_operation()?;
-            let right = self.term(depth)?;
-            left = finite(if op == b'+' {
-                left + right
-            } else {
-                left - right
-            })?;
-        }
-    }
-
-    fn term(&mut self, depth: usize) -> Result<f64, CalcError> {
-        let mut left = self.unary(depth)?;
-        loop {
-            let op = match self.peek() {
-                Some(b'*') => b'*',
-                Some(b'/') => b'/',
-                _ => return Ok(left),
-            };
-            self.pos += 1;
-            self.count_operation()?;
-            let right = self.unary(depth)?;
-            if op == b'/' && right == 0.0 {
-                return Err(CalcError::DivisionByZero);
-            }
-            left = finite(if op == b'*' {
-                left * right
-            } else {
-                left / right
-            })?;
-        }
-    }
-
-    fn unary(&mut self, depth: usize) -> Result<f64, CalcError> {
-        if depth >= MAX_DEPTH {
-            return Err(CalcError::TooComplex);
-        }
-        if self.consume(b'+') {
-            self.count_operation()?;
-            self.unary(depth + 1)
-        } else if self.consume(b'-') {
-            self.count_operation()?;
-            finite(-self.unary(depth + 1)?)
-        } else {
-            self.primary(depth)
-        }
-    }
-
-    fn primary(&mut self, depth: usize) -> Result<f64, CalcError> {
-        if self.consume(b'(') {
-            if depth >= MAX_DEPTH - 1 {
-                return Err(CalcError::TooComplex);
-            }
-            let value = self.expression(depth + 1)?;
-            if !self.consume(b')') {
-                return Err(CalcError::MissingClosingParenthesis);
-            }
-            Ok(value)
-        } else {
-            self.number()
-        }
-    }
-
-    fn number(&mut self) -> Result<f64, CalcError> {
-        self.skip_spaces();
-        let start = self.pos;
-        let mut digits = 0usize;
-        while self.input.get(self.pos).is_some_and(u8::is_ascii_digit) {
-            digits += 1;
-            self.pos += 1;
-        }
-        let mut separator = false;
-        if matches!(self.input.get(self.pos), Some(b'.' | b',')) {
-            separator = true;
-            self.pos += 1;
-            while self.input.get(self.pos).is_some_and(u8::is_ascii_digit) {
-                digits += 1;
-                self.pos += 1;
-            }
-        }
-        if digits == 0 {
-            return Err(match self.input.get(self.pos) {
-                None | Some(b')' | b'+' | b'-' | b'*' | b'/') => CalcError::UnexpectedToken,
-                Some(_) => CalcError::InvalidCharacter,
-            });
-        }
-        let slice = std::str::from_utf8(&self.input[start..self.pos])
-            .map_err(|_| CalcError::InvalidCharacter)?;
-        let normalized = if separator {
-            slice.replace(',', ".")
-        } else {
-            slice.to_owned()
-        };
-        let value: f64 = normalized.parse().map_err(|_| CalcError::InvalidNumber)?;
-        finite(value)
-    }
+/// Evaluate with the specified trigonometrical angle mode.
+pub fn evaluate_with_mode(input: &str, mode: AngleMode) -> Result<f64, CalcError> {
+    scientific::evaluate(input, mode)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -230,6 +81,17 @@ pub fn add_numbers(lhs: f64, rhs: f64) -> Result<f64, JsValue> {
 #[wasm_bindgen]
 pub fn evaluate_expression(expression: &str) -> Result<f64, JsValue> {
     evaluate(expression).map_err(|err| JsValue::from_str(err.message()))
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn evaluate_scientific(expression: &str, degrees: bool) -> Result<f64, JsValue> {
+    let mode = if degrees {
+        AngleMode::Degrees
+    } else {
+        AngleMode::Radians
+    };
+    evaluate_with_mode(expression, mode).map_err(|err| JsValue::from_str(err.message()))
 }
 
 #[cfg(test)]
@@ -267,7 +129,7 @@ mod tests {
     #[test]
     fn invalid_cases_are_errors() {
         for text in [
-            "", " ", "1+", "(1+2", "1+)", "1 2", "1..2", "1,2,3", "2^3", "abc", "1e3", "2(3)",
+            "", " ", "1+", "(1+2", "1+)", "1 2", "1..2", "1,2,3", "abc", "1e3", "2(3)",
             "1/0", "0/(-0)", "10/0.0", "2*(3))",
         ] {
             assert!(evaluate(text).is_err(), "unexpected acceptance: {text}");
