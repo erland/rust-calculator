@@ -1,18 +1,27 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-001
-in_progress: DEV-001
-completed_steps: []
+selected_step: DEV-002
+in_progress: DEV-002
+completed_steps:
+  - DEV-001
 next:
-  recommended: DEV-001
-  action: verify_and_repair
+  recommended: DEV-002
+  action: verify
 verification:
-  source_scaffold: static_pass
-  rust: blocked_missing_toolchain
-  npm: blocked_registry_dns
-  windows_macos: blocked_requires_ci
-  pwa_browser: blocked_requires_build
+  dev_001:
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42278399520
+    source_sha: 5e086da0ab34e8b62c8673c2fc33eaa63a62fa21
+    rust: pass
+    web: pass
+    windows_tauri_smoke: pass
+    macos_tauri_smoke: pass
+    browser_offline: deferred_to_DEV-006
+  dev_002:
+    rust_unit_tests: pending_ci
+    frontend_tests: pending_ci
+    wasm_build: pending_ci
+    desktop_smoke: pending_ci
 notes:
-  - DEV-001 is implemented in source but not verified complete.
-  - Generate and commit lockfiles after successful package resolution.
-  - Do not start DEV-002 until verification passes.
+  - DEV-001 CI passed on its merged PR; standalone portability and offline acceptance remain for later steps.
+  - DEV-002 implements expression parsing in the shared Rust engine, with WebAssembly integration.
+  - DEV-002 is not completed until required verification is green.
