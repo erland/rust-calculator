@@ -15,7 +15,8 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "types": [
-      "vite/client"
+      "vite/client",
+      "jest"
     ]
   },
   "include": [
