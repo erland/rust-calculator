@@ -1,0 +1,18 @@
+schema_version: 1
+phase: implementation
+selected_step: DEV-001
+in_progress: DEV-001
+completed_steps: []
+next:
+  recommended: DEV-001
+  action: verify_and_repair
+verification:
+  source_scaffold: static_pass
+  rust: blocked_missing_toolchain
+  npm: blocked_registry_dns
+  windows_macos: blocked_requires_ci
+  pwa_browser: blocked_requires_build
+notes:
+  - DEV-001 is implemented in source but not verified complete.
+  - Generate and commit lockfiles after successful package resolution.
+  - Do not start DEV-002 until verification passes.

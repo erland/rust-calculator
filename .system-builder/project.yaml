@@ -1,0 +1,13 @@
+schema_version: 1
+name: kalkylator
+mode: CREATE
+stage: implementation
+platforms:
+  - pwa
+  - windows-portable
+  - macos-portable
+stack:
+  ui: React + TypeScript + Vite
+  desktop: Tauri 2
+  engine: Rust + WebAssembly
+  ci: GitHub Actions

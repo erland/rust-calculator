@@ -1,0 +1,14 @@
+schema_version: 1
+targets:
+  pwa:
+    artifact: static_site
+    host: github_pages_or_other_https
+  windows:
+    artifact: zip_with_exe
+    installer: false
+  macos:
+    artifact: zip_with_app
+    installer: false
+security:
+  signing: required_for_smooth_external_distribution
+  app_control_policy: must_be_validated
