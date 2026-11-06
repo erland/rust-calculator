@@ -3,6 +3,12 @@ import { test, expect } from '@playwright/test';
 test('installs a complete offline precache and calculates without a network', async ({ page, context }) => {
   await page.goto('/');
   await expect(page.getByRole('status')).toContainText('Redo');
+  const manifestUrl = await page.locator('link[rel="manifest"]').getAttribute('href');
+  expect(manifestUrl).toBeTruthy();
+  const manifest = await page.evaluate(async href => (await (await fetch(href!)).json()) as { display: string; icons: Array<{ sizes: string }> }, manifestUrl);
+  expect(manifest.display).toBe('standalone');
+  expect(manifest.icons.some(icon => icon.sizes === '192x192')).toBe(true);
+  expect(manifest.icons.some(icon => icon.sizes === '512x512')).toBe(true);
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
     if (!registration.active) throw new Error('Service worker is not active');
