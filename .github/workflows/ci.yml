@@ -32,6 +32,8 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+      # Tests type-check the Wasm import, so generate the bindings first.
+      - run: npm run build:wasm
       - run: npm test
       - run: npm run build
       - uses: actions/upload-artifact@v4
