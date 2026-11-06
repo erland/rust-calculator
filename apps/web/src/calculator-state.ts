@@ -9,6 +9,18 @@ export function appendKey(expression: string, key: string): string {
   return (expression + key).slice(0, MAX_EXPRESSION_LENGTH);
 }
 
+/** Append a token provided by the scientific keypad, never arbitrary user-supplied code. */
+const SCIENTIFIC_TOKENS = new Set([
+  'sin(', 'cos(', 'tan(', 'asin(', 'acos(', 'atan(', 'sqrt(',
+  'root(', 'log(', 'ln(', 'exp(', 'abs(', 'pi', 'e', '^', '!', ';',
+]);
+
+export function appendScientificKey(expression: string, token: string): string {
+  if (!SCIENTIFIC_TOKENS.has(token)) return expression;
+  if (expression.length + token.length > MAX_EXPRESSION_LENGTH) return expression;
+  return expression + token;
+}
+
 export function eraseKey(expression: string): string {
   return Array.from(expression).slice(0, -1).join('');
 }
