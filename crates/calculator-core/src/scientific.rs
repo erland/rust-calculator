@@ -188,13 +188,13 @@ impl Parser<'_> {
             ("tan", None) => finite(self.angle(first).tan()),
             ("asin", None) => {
                 domain((-1.0..=1.0).contains(&first))?;
-                finite(self.from_angle(first.asin()))
+                finite(self.angle_output(first.asin()))
             }
             ("acos", None) => {
                 domain((-1.0..=1.0).contains(&first))?;
-                finite(self.from_angle(first.acos()))
+                finite(self.angle_output(first.acos()))
             }
-            ("atan", None) => finite(self.from_angle(first.atan())),
+            ("atan", None) => finite(self.angle_output(first.atan())),
             ("sqrt", None) => {
                 domain(first >= 0.0)?;
                 finite(first.sqrt())
@@ -218,7 +218,7 @@ impl Parser<'_> {
             AngleMode::Degrees => value.to_radians(),
         }
     }
-    fn from_angle(&self, value: f64) -> f64 {
+    fn angle_output(&self, value: f64) -> f64 {
         match self.mode {
             AngleMode::Radians => value,
             AngleMode::Degrees => value.to_degrees(),
