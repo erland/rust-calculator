@@ -1,0 +1,7 @@
+schema_version: 1
+requirements:
+  R-01: [DEV-001, DEV-002, DEV-003]
+  R-02: [DEV-004, DEV-005]
+  R-03: [DEV-001, DEV-006]
+  R-04: [DEV-001, DEV-007]
+  R-05: [DEV-007, DEV-008]
