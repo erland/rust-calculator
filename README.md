@@ -1,11 +1,11 @@
-# Kalkylator — DEV-001 working source scaffold
+# Kalkylator — DEV-002 expression parser
 
-One repository for a PWA, portable Windows executable and macOS `.app`. The last two are **distribution goals**, not verified portable applications yet. DEV-001 is **implemented but verification blocked** until toolchains and OS builds run; see `docs/verifiering-dev001.md`.
+One repository for a PWA, portable Windows executable and macOS `.app`. The last two are **distribution goals**, not verified portable applications yet. DEV-001 CI passed on GitHub Actions run #5; offline browser tests and portable distribution remain later acceptance tasks. DEV-002 is under CI verification in PR #2.
 
 ## Current functionality
-- Rust `calculator-core` implements a finite-number-safe `add(2, 2) = 4` with native unit tests.
-- `wasm-pack` exports the same Rust addition to browser JS; no JavaScript arithmetic implementation.
-- React calculator takes two numbers, accepts Swedish decimal commas and displays the result or error.
+- Rust `calculator-core` evaluates bounded arithmetic expressions with +, -, *, /, parentheses, unary signs, operator precedence and decimals (comma or point). It rejects division by zero, invalid expressions and non-finite results.
+- `wasm-pack` exports the Rust expression evaluator to browser JS; no duplicate JavaScript arithmetic implementation.
+- React calculator accepts a whole expression (e.g. `2 + 3 * 4`) and displays its result or an error.
 - Vite PWA plugin generates manifest and precache service worker on build. Offline/browser behavior is not yet tested.
 - Tauri 2 desktop scaffold and GitHub Actions CI for Rust, PWA, and Windows/macOS smoke builds.
 
@@ -50,6 +50,6 @@ On macOS, an `.app` bundle can later be produced with `npm run tauri bundle -- -
 - `docs/` requirements, architecture, plan, verification
 
 ## Development status
-DEV-002 implements the full expression parser and operator precedence. DEV-003 adds standard calculator keypad and memory. Scientific functions arrive in DEV-004/005. Release automation arrives in DEV-008.
+DEV-002 implements the expression parser and operator precedence. DEV-003 adds the standard calculator keypad and memory. Scientific functions arrive in DEV-004/005. Release automation arrives in DEV-008.
 
 The node and cargo lockfiles are not included yet because this execution environment could not resolve packages; the next validation pass should generate and commit both lockfiles, then change CI from `npm install` to `npm ci` and `cargo ... --locked`. This is an explicit reproducibility gap, not a completed check.
