@@ -37,7 +37,11 @@ struct Parser<'a> {
 
 impl Parser<'_> {
     fn skip_space(&mut self) {
-        while self.input.get(self.pos).is_some_and(u8::is_ascii_whitespace) {
+        while self
+            .input
+            .get(self.pos)
+            .is_some_and(u8::is_ascii_whitespace)
+        {
             self.pos += 1;
         }
     }
