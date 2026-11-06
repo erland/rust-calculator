@@ -1,9 +1,29 @@
 import { useEffect, useState } from 'react';
 import { loadEngine, type Engine } from './math';
 import {
-  addHistory, appendKey, eraseKey, readSavedCalculator, saveCalculator,
+  addHistory, appendKey, appendScientificKey, eraseKey, readSavedCalculator, saveCalculator,
   type HistoryEntry,
 } from './calculator-state';
+
+const SCIENTIFIC_KEYS = [
+  { label: 'sin', token: 'sin(', description: 'Sinus' },
+  { label: 'cos', token: 'cos(', description: 'Cosinus' },
+  { label: 'tan', token: 'tan(', description: 'Tangens' },
+  { label: 'asin', token: 'asin(', description: 'Arcsinus' },
+  { label: 'acos', token: 'acos(', description: 'Arccosinus' },
+  { label: 'atan', token: 'atan(', description: 'Arctangens' },
+  { label: 'xʸ', token: '^', description: 'Upphöjt till' },
+  { label: '√', token: 'sqrt(', description: 'Kvadratrot' },
+  { label: 'ⁿ√', token: 'root(', description: 'N-te rot, argument separeras med semikolon' },
+  { label: 'log', token: 'log(', description: 'Tiologaritm' },
+  { label: 'ln', token: 'ln(', description: 'Naturlig logaritm' },
+  { label: 'exp', token: 'exp(', description: 'Exponentialfunktion' },
+  { label: 'π', token: 'pi', description: 'Pi' },
+  { label: 'e', token: 'e', description: 'Eulers tal' },
+  { label: 'x!', token: '!', description: 'Fakultet' },
+  { label: 'abs', token: 'abs(', description: 'Absolutbelopp' },
+  { label: ';', token: ';', description: 'Argumentseparator' },
+] as const;
 
 const KEYS = [
   'C', '⌫', '(', ')',
@@ -23,6 +43,8 @@ export default function App() {
   const [error, setError] = useState('');
   const [expression, setExpression] = useState('2 + 3 * 4');
   const [result, setResult] = useState('');
+  const [scientific, setScientific] = useState(false);
+  const [degrees, setDegrees] = useState(true);
   const [saved, setSaved] = useState(initialSaved);
   const { memory, history } = saved;
 
@@ -40,7 +62,7 @@ export default function App() {
   function calculate(value = expression) {
     if (!engine) return;
     try {
-      const computed = String(engine.evaluate(value));
+      const computed = String(scientific ? engine.evaluateScientific(value, degrees) : engine.evaluate(value));
       setResult(computed);
       setExpression(value);
       setSaved(previous => ({
@@ -62,6 +84,12 @@ export default function App() {
     setExpression(previous => appendKey(previous, key));
   }
 
+  function insertScientific(token: string) {
+    setExpression(previous => appendScientificKey(previous, token));
+    setResult('');
+    setError('');
+  }
+
   function useMemory(action: 'MC' | 'MR' | 'MS' | 'M+' | 'M−') {
     if (action === 'MC') {
       setSaved(previous => ({ ...previous, memory: null }));
@@ -78,13 +106,13 @@ export default function App() {
     }
     if (!engine) return;
     try {
-      const value = String(engine.evaluate(result || expression));
+      const value = String(scientific ? engine.evaluateScientific(result || expression, degrees) : engine.evaluate(result || expression));
       if (action === 'MS') {
         setSaved(previous => ({ ...previous, memory: value }));
       } else {
         const base = memory ?? '0';
         const operator = action === 'M+' ? '+' : '-';
-        const next = String(engine.evaluate(`(${base})${operator}(${value})`));
+        const next = String(scientific ? engine.evaluateScientific(`(${base})${operator}(${value})`, degrees) : engine.evaluate(`(${base})${operator}(${value})`));
         setSaved(previous => ({ ...previous, memory: next }));
       }
       setError('');
@@ -95,15 +123,27 @@ export default function App() {
 
   return <main className="shell">
     <header>
-      <p className="eyebrow">KALKYLATOR · STANDARD</p>
+      <p className="eyebrow">KALKYLATOR · {scientific ? 'VETENSKAPLIG' : 'STANDARD'}</p>
       <h1>Räkna enkelt.<br/><span>Fortsätt smart.</span></h1>
       <p className="subtitle">Samma Rust-baserade beräkningar i PWA, Windows och macOS.</p>
     </header>
     <section className="calculator" aria-label="Kalkylator">
       <div className="topline">
-        <strong>Standard</strong>
+        <strong>{scientific ? 'Vetenskaplig' : 'Standard'}</strong>
         <span className="status" role="status">{engine ? '● Redo' : '◌ Läser in Rust/Wasm…'}</span>
       </div>
+      <div className="mode-controls" role="group" aria-label="Kalkylatorläge">
+        <button type="button" className={!scientific ? 'mode-button selected' : 'mode-button'} aria-pressed={!scientific}
+          onClick={() => { setScientific(false); setResult(''); setError(''); }}>Standard</button>
+        <button type="button" className={scientific ? 'mode-button selected' : 'mode-button'} aria-pressed={scientific}
+          onClick={() => { setScientific(true); setResult(''); setError(''); }}>Vetenskaplig</button>
+      </div>
+      {scientific && <div className="angle-controls" role="group" aria-label="Vinkelenhet">
+        <button type="button" className={degrees ? 'mode-button selected' : 'mode-button'} aria-pressed={degrees}
+          onClick={() => { setDegrees(true); setResult(''); setError(''); }}>DEG</button>
+        <button type="button" className={!degrees ? 'mode-button selected' : 'mode-button'} aria-pressed={!degrees}
+          onClick={() => { setDegrees(false); setResult(''); setError(''); }}>RAD</button>
+      </div>}
       <form onSubmit={event => { event.preventDefault(); calculate(); }}>
         <label htmlFor="expression">Uttryck</label>
         <input id="expression" value={expression} onChange={event => { setExpression(event.target.value.slice(0, 4096)); setResult(''); setError(''); }}
@@ -116,6 +156,10 @@ export default function App() {
               disabled={!engine || ((action === 'MR' || action === 'MC') && memory === null)} aria-label={action === 'MC' ? 'Rensa minne' : action === 'MR' ? 'Hämta minne' : action === 'MS' ? 'Spara till minne' : action === 'M+' ? 'Addera till minne' : 'Subtrahera från minne'}>{action}</button>
           )}
         </div>
+        {scientific && <div className="scientific-keys" role="group" aria-label="Vetenskapliga funktioner">
+          {SCIENTIFIC_KEYS.map(key => <button type="button" className="scientific-key" key={key.label}
+            aria-label={key.description} title={key.description} onClick={() => insertScientific(key.token)}>{key.label}</button>)}
+        </div>}
         <div className="keypad" role="group" aria-label="Kalkylatorknappar">
           {KEYS.map(key => <button key={key} type="button" className={`key ${'+-*/'.includes(key) ? 'key-operator' : ''} ${key === 'C' || key === '⌫' ? 'key-action' : ''}`}
             aria-label={key === 'C' ? 'Rensa uttryck' : key === '⌫' ? 'Ta bort sista tecknet' : key}
@@ -138,6 +182,6 @@ export default function App() {
           </button>
         </li>)}</ol>}
     </section>
-    <p className="footnote">Historik och minne sparas lokalt på den här enheten. Vetenskapligt läge kommer senare.</p>
+    <p className="footnote">Historik och minne sparas lokalt på den här enheten. Vetenskapliga uttryck använder samma Rust-motor som standardläget.</p>
   </main>;
 }
