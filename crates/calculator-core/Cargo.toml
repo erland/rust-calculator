@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "Shared calculator mathematics for native and WebAssembly targets"
 
+[package.metadata.wasm-pack.profile.release]
+# wasm-pack's bundled wasm-opt on some macOS runners cannot parse newer Wasm features.
+# Keep rustc release optimization; revisit wasm-opt when toolchain is pinned.
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
