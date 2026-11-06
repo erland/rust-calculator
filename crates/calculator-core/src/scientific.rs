@@ -327,9 +327,23 @@ mod tests {
     #[test]
     fn invalid_domains_and_syntax() {
         for input in [
-            "sqrt(-1)", "log(0)", "ln(-2)", "asin(2)", "acos(-2)", "(-3)^0.5",
-            "171!", "1.5!", "root(-8;2)", "root(4;0)", "root(1;2;3)",
-            "2^^3", "sin()", "1e3", "3pi", "sin(30", "foo(4)",
+            "sqrt(-1)",
+            "log(0)",
+            "ln(-2)",
+            "asin(2)",
+            "acos(-2)",
+            "(-3)^0.5",
+            "171!",
+            "1.5!",
+            "root(-8;2)",
+            "root(4;0)",
+            "root(1;2;3)",
+            "2^^3",
+            "sin()",
+            "1e3",
+            "3pi",
+            "sin(30",
+            "foo(4)",
         ] {
             assert!(evaluate(input, AngleMode::Radians).is_err(), "{input}");
         }
