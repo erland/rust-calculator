@@ -2,6 +2,7 @@
 export interface Engine {
   add(lhs: number, rhs: number): number;
   evaluate(expression: string): number;
+  evaluateScientific(expression: string, degrees: boolean): number;
 }
 export async function loadEngine(): Promise<Engine> {
   const wasm = await import('./generated/wasm/calculator_core.js');
@@ -9,6 +10,7 @@ export async function loadEngine(): Promise<Engine> {
   return {
     add: (lhs, rhs) => wasm.add_numbers(lhs, rhs),
     evaluate: expression => wasm.evaluate_expression(expression),
+    evaluateScientific: (expression, degrees) => wasm.evaluate_scientific(expression, degrees),
   };
 }
 export function parseNumber(raw: string): number {
