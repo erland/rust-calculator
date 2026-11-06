@@ -38,7 +38,11 @@ impl CalcError {
 }
 
 fn finite(value: f64) -> Result<f64, CalcError> {
-    if value.is_finite() { Ok(value) } else { Err(CalcError::NonFiniteResult) }
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(CalcError::NonFiniteResult)
+    }
 }
 
 /// Backwards-compatible API used by DEV-001.
@@ -58,7 +62,11 @@ pub fn evaluate(input: &str) -> Result<f64, CalcError> {
     if input.trim().is_empty() {
         return Err(CalcError::EmptyExpression);
     }
-    let mut parser = Parser { input: input.as_bytes(), pos: 0, operations: 0 };
+    let mut parser = Parser {
+        input: input.as_bytes(),
+        pos: 0,
+        operations: 0,
+    };
     let value = parser.expression(0)?;
     parser.skip_spaces();
     if parser.pos != parser.input.len() {
@@ -96,7 +104,11 @@ impl Parser<'_> {
 
     fn count_operation(&mut self) -> Result<(), CalcError> {
         self.operations += 1;
-        if self.operations > MAX_OPERATIONS { Err(CalcError::TooComplex) } else { Ok(()) }
+        if self.operations > MAX_OPERATIONS {
+            Err(CalcError::TooComplex)
+        } else {
+            Ok(())
+        }
     }
 
     fn expression(&mut self, depth: usize) -> Result<f64, CalcError> {
@@ -110,7 +122,11 @@ impl Parser<'_> {
             self.pos += 1;
             self.count_operation()?;
             let right = self.term(depth)?;
-            left = finite(if op == b'+' { left + right } else { left - right })?;
+            left = finite(if op == b'+' {
+                left + right
+            } else {
+                left - right
+            })?;
         }
     }
 
@@ -128,12 +144,18 @@ impl Parser<'_> {
             if op == b'/' && right == 0.0 {
                 return Err(CalcError::DivisionByZero);
             }
-            left = finite(if op == b'*' { left * right } else { left / right })?;
+            left = finite(if op == b'*' {
+                left * right
+            } else {
+                left / right
+            })?;
         }
     }
 
     fn unary(&mut self, depth: usize) -> Result<f64, CalcError> {
-        if depth >= MAX_DEPTH { return Err(CalcError::TooComplex); }
+        if depth >= MAX_DEPTH {
+            return Err(CalcError::TooComplex);
+        }
         if self.consume(b'+') {
             self.count_operation()?;
             self.unary(depth + 1)
@@ -147,7 +169,9 @@ impl Parser<'_> {
 
     fn primary(&mut self, depth: usize) -> Result<f64, CalcError> {
         if self.consume(b'(') {
-            if depth >= MAX_DEPTH - 1 { return Err(CalcError::TooComplex); }
+            if depth >= MAX_DEPTH - 1 {
+                return Err(CalcError::TooComplex);
+            }
             let value = self.expression(depth + 1)?;
             if !self.consume(b')') {
                 return Err(CalcError::MissingClosingParenthesis);
@@ -183,7 +207,11 @@ impl Parser<'_> {
         }
         let slice = std::str::from_utf8(&self.input[start..self.pos])
             .map_err(|_| CalcError::InvalidCharacter)?;
-        let normalized = if separator { slice.replace(',', ".") } else { slice.to_owned() };
+        let normalized = if separator {
+            slice.replace(',', ".")
+        } else {
+            slice.to_owned()
+        };
         let value: f64 = normalized.parse().map_err(|_| CalcError::InvalidNumber)?;
         finite(value)
     }
@@ -238,7 +266,10 @@ mod tests {
 
     #[test]
     fn invalid_cases_are_errors() {
-        for text in ["", " ", "1+", "(1+2", "1+)", "1 2", "1..2", "1,2,3", "2^3", "abc", "1e3", "2(3)", "1/0", "0/(-0)", "10/0.0", "2*(3))"] {
+        for text in [
+            "", " ", "1+", "(1+2", "1+)", "1 2", "1..2", "1,2,3", "2^3", "abc", "1e3", "2(3)",
+            "1/0", "0/(-0)", "10/0.0", "2*(3))",
+        ] {
             assert!(evaluate(text).is_err(), "unexpected acceptance: {text}");
         }
         assert_eq!(evaluate("1/0"), Err(CalcError::DivisionByZero));
@@ -248,9 +279,18 @@ mod tests {
 
     #[test]
     fn complexity_and_numeric_limits() {
-        assert_eq!(evaluate(&"1".repeat(MAX_LENGTH + 1)), Err(CalcError::ExpressionTooLong));
-        assert_eq!(evaluate(&format!("{}1{}", "(".repeat(65), ")".repeat(65))), Err(CalcError::TooComplex));
-        assert_eq!(evaluate(&format!("{}1", "-".repeat(65))), Err(CalcError::TooComplex));
+        assert_eq!(
+            evaluate(&"1".repeat(MAX_LENGTH + 1)),
+            Err(CalcError::ExpressionTooLong)
+        );
+        assert_eq!(
+            evaluate(&format!("{}1{}", "(".repeat(65), ")".repeat(65))),
+            Err(CalcError::TooComplex)
+        );
+        assert_eq!(
+            evaluate(&format!("{}1", "-".repeat(65))),
+            Err(CalcError::TooComplex)
+        );
         assert!(evaluate(&format!("{}*10", "9".repeat(308))).is_err());
     }
 
