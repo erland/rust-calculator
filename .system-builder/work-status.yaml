@@ -1,13 +1,14 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-004
-in_progress: DEV-004
+selected_step: DEV-005
+in_progress: DEV-005
 completed_steps:
   - DEV-001
   - DEV-002
   - DEV-003
+  - DEV-004
 next:
-  recommended: DEV-004
+  recommended: DEV-005
   action: verify
 verification:
   dev_001:
@@ -21,11 +22,14 @@ verification:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42284720443
     status: pass
   dev_004:
-    rust_scientific_tests: pending_ci
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42287579719
+    status: pass
+  dev_005:
+    jest_ui: pending_ci
     web_build: pending_ci
     desktop_smoke: pending_ci
+    browser_e2e: pending_browser
 notes:
-  - DEV-003 was merged and CI #11 passed, reconciling stale status from main.
-  - DEV-004 implements scientific parsing in Rust; the scientific UI is scheduled for DEV-005.
-  - Scientific results are f64 approximations, not exact decimal arithmetic.
-  - PWA offline and portable OS acceptance remain for later steps.
+  - DEV-004 was merged after passing all four CI jobs.
+  - DEV-005 adds scientific keypad and DEG/RAD selection, while keeping the shared Rust/Wasm engine.
+  - Do not complete DEV-005 before verification of this revision.
