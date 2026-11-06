@@ -1,5 +1,5 @@
 import {
-  addHistory, appendKey, eraseKey, readSavedCalculator, saveCalculator, STORAGE_KEY,
+  addHistory, appendKey, appendScientificKey, eraseKey, readSavedCalculator, saveCalculator, STORAGE_KEY,
 } from '../src/calculator-state';
 
 describe('calculator keyboard', () => {
@@ -32,5 +32,17 @@ describe('local history and memory', () => {
     expect(ok).toBe(true);
     expect(savedKey).toBe(STORAGE_KEY);
     expect(JSON.parse(savedValue).memory).toBe('7');
+  });
+});
+
+describe('scientific keypad insertion', () => {
+  test('inserts allowlisted function tokens', () => {
+    expect(appendScientificKey('', 'sin(')).toBe('sin(');
+    expect(appendScientificKey('root(27', ';')).toBe('root(27;');
+    expect(appendScientificKey('2', '^')).toBe('2^');
+  });
+  test('does not inject invalid input or exceed the expression bound', () => {
+    expect(appendScientificKey('2', 'eval(')).toBe('2');
+    expect(appendScientificKey('1'.repeat(4095), 'sqrt(')).toHaveLength(4095);
   });
 });
