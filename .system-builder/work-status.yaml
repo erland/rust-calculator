@@ -1,27 +1,28 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-002
-in_progress: DEV-002
+selected_step: DEV-003
+in_progress: DEV-003
 completed_steps:
   - DEV-001
+  - DEV-002
 next:
-  recommended: DEV-002
+  recommended: DEV-003
   action: verify
 verification:
   dev_001:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42278399520
-    source_sha: 5e086da0ab34e8b62c8673c2fc33eaa63a62fa21
-    rust: pass
-    web: pass
-    windows_tauri_smoke: pass
-    macos_tauri_smoke: pass
+    status: pass
     browser_offline: deferred_to_DEV-006
   dev_002:
-    rust_unit_tests: pending_ci
-    frontend_tests: pending_ci
-    wasm_build: pending_ci
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42282466158
+    status: pass
+  dev_003:
+    jest_component_tests: pending_ci
+    history_persistence: pending_ci
+    web_build: pending_ci
     desktop_smoke: pending_ci
+    browser_e2e: pending_browser_environment
 notes:
-  - DEV-001 CI passed on its merged PR; standalone portability and offline acceptance remain for later steps.
-  - DEV-002 implements expression parsing in the shared Rust engine, with WebAssembly integration.
-  - DEV-002 is not completed until required verification is green.
+  - DEV-002 was merged and CI #9 passed, reconciling stale status from main.
+  - DEV-003 is implemented on a feature branch but not completed until CI and verification pass.
+  - Release-relevant PWA offline and portable OS acceptance belong to DEV-006 through DEV-008.
