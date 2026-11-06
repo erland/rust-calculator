@@ -153,7 +153,11 @@ impl Parser<'_> {
     }
     fn identifier(&mut self, depth: usize) -> Result<f64, CalcError> {
         let start = self.pos;
-        while self.input.get(self.pos).is_some_and(u8::is_ascii_alphabetic) {
+        while self
+            .input
+            .get(self.pos)
+            .is_some_and(u8::is_ascii_alphabetic)
+        {
             self.pos += 1;
         }
         let name = std::str::from_utf8(&self.input[start..self.pos])
