@@ -9,7 +9,8 @@
     "build:wasm": "wasm-pack build ../../crates/calculator-core --target web --out-dir ../../apps/web/src/generated/wasm --out-name calculator_core",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -25,6 +26,7 @@
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.0",
     "vite": "^7.0.0",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.0.0",
+    "@playwright/test": "^1.56.1"
   }
 }
