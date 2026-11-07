@@ -1,0 +1,114 @@
+name: Portable desktop packages (DEV-007)
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - '.github/workflows/portable-desktop.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  windows-portable:
+    name: Windows x64 portable ZIP
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run tauri build -- --no-bundle
+      - name: Package and inspect portable Windows binary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = 'src-tauri/target/release/kalkylator-desktop.exe'
+          if (-not (Test-Path $exe)) { throw "Missing compiled executable: $exe" }
+          $out = '../../portable-output'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $staging = Join-Path $env:RUNNER_TEMP 'kalkylator-portable-windows'
+          New-Item -ItemType Directory -Force -Path $staging | Out-Null
+          Copy-Item $exe (Join-Path $staging 'Kalkylator.exe')
+          Copy-Item '../../docs/portable-desktop.md' (Join-Path $staging 'LAS-MIG.md')
+          $archive = Join-Path $out 'kalkylator-windows-x64-portable.zip'
+          Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $archive -Force
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $entries = [IO.Compression.ZipFile]::OpenRead((Resolve-Path $archive).Path)
+          try {
+            if (-not ($entries.Entries.FullName -contains 'Kalkylator.exe')) { throw 'Portable ZIP missing executable' }
+            if (-not ($entries.Entries.FullName -contains 'LAS-MIG.md')) { throw 'Portable ZIP missing instructions' }
+          } finally { $entries.Dispose() }
+          $digest = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          "$digest  $(Split-Path $archive -Leaf)" | Set-Content -Encoding ascii (Join-Path $out 'SHA256SUMS.txt')
+          Write-Host "Windows package: $archive; SHA256: $digest"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kalkylator-windows-x64-portable
+          path: portable-output/*
+          if-no-files-found: error
+
+  macos-portable:
+    name: macOS ${{ matrix.arch }} app ZIP
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - arch: x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run tauri build -- --bundles app
+      - name: Verify architecture and package application
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="src-tauri/target/release/bundle/macos/Kalkylator.app"
+          test -d "$app/Contents"
+          test -f "$app/Contents/Info.plist"
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          test -n "$executable"
+          test -x "$app/Contents/MacOS/$executable"
+          actual=$(lipo -archs "$app/Contents/MacOS/$executable")
+          echo "Native executable architectures: $actual"
+          case " $actual " in
+            *" ${{ matrix.target == 'aarch64-apple-darwin' && 'arm64' || 'x86_64' }} "*) ;;
+            *) echo "Wrong architecture: $actual" >&2; exit 1 ;;
+          esac
+          mkdir -p ../../portable-output
+          cp ../../docs/portable-desktop.md ../../portable-output/LAS-MIG.md
+          archive="../../portable-output/kalkylator-macos-${{ matrix.arch }}-portable.zip"
+          # ditto preserves .app structure, executable bits and symlinks.
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
+          unzip -Z1 "$archive" | grep -q '^Kalkylator.app/Contents/Info.plist$'
+          shasum -a 256 "$archive" > "../../portable-output/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kalkylator-macos-${{ matrix.arch }}-portable
+          path: portable-output/*
+          if-no-files-found: error
