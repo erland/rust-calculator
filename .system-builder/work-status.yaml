@@ -1,7 +1,7 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-007
-in_progress: DEV-007
+selected_step: DEV-008
+in_progress: DEV-008
 completed_steps:
   - DEV-001
   - DEV-002
@@ -10,22 +10,27 @@ completed_steps:
   - DEV-005
   - DEV-006
 next:
-  recommended: DEV-007
-  action: verify
+  recommended: DEV-008
+  action: verify_release_candidate
 verification:
   dev_006:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42295964078
     status: pass
-    playwright_offline: pass
   dev_007:
-    windows_x64_build_zip_sha256: pending_ci
-    macos_arm64_app_zip_sha256: pending_ci
-    macos_x64_app_zip_sha256: pending_ci
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42337173156
+    portable_ci_run: https://github.com/erland/rust-calculator/actions/runs/42337173221
+    build_and_package: pass
     ordinary_user_windows_launch: pending_manual
     ordinary_user_macos_arm64_launch: pending_manual
     ordinary_user_macos_x64_launch: pending_manual
+  dev_008:
+    release_workflow_pr_build: pending_ci
+    package_checksums_and_contents: pending_ci
+    playwright_offline: pending_ci
+    draft_release_workflow_dispatch: pending_manual
+    stable_release_approval: blocked_manual_desktop_acceptance
 notes:
-  - DEV-006 merged after all five jobs passed CI #22, including offline Chromium tests.
-  - DEV-007 produces PR-verifiable portable ZIP artifacts and SHA-256 digests.
-  - Running without admin rights on locked-down end-user machines cannot be proven by a CI build alone.
-  - Do not mark DEV-007 complete until necessary real-world acceptance is confirmed or recorded as an explicit release blocker.
+  - DEV-007 builds and ZIP packaging passed and merged; real-world locked-device start remains unverified and is a release blocker.
+  - DEV-008 has a manual main-only draft release workflow; no automatic release publication.
+  - Versioned release-candidate tag, four ZIP files and checksums require verification before a draft can be accepted.
+  - Reproducible builds remain blocked by missing committed npm/Cargo lockfiles.
