@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadEngine, type Engine } from './math';
+import { clearAppStorage, readPreferences, savePreferences } from './pwa-settings';
 import {
   addHistory, appendKey, appendScientificKey, eraseKey, readSavedCalculator, saveCalculator,
   type HistoryEntry,
@@ -43,8 +44,10 @@ export default function App() {
   const [error, setError] = useState('');
   const [expression, setExpression] = useState('2 + 3 * 4');
   const [result, setResult] = useState('');
-  const [scientific, setScientific] = useState(false);
-  const [degrees, setDegrees] = useState(true);
+  const [preferences, setPreferences] = useState(() => typeof localStorage === 'undefined' ? { scientific: false, degrees: true } : readPreferences(localStorage));
+  const { scientific, degrees } = preferences;
+  const setScientific = (value: boolean) => setPreferences(previous => ({ ...previous, scientific: value }));
+  const setDegrees = (value: boolean) => setPreferences(previous => ({ ...previous, degrees: value }));
   const [saved, setSaved] = useState(initialSaved);
   const { memory, history } = saved;
 
@@ -58,6 +61,19 @@ export default function App() {
   useEffect(() => {
     if (typeof localStorage !== 'undefined') saveCalculator(localStorage, saved);
   }, [saved]);
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') savePreferences(localStorage, preferences);
+  }, [preferences]);
+
+  function clearLocalData() {
+    if (typeof localStorage !== 'undefined') clearAppStorage(localStorage);
+    setSaved({ memory: null, history: [] });
+    setPreferences({ scientific: false, degrees: true });
+    setExpression('');
+    setResult('');
+    setError('');
+  }
 
   function calculate(value = expression) {
     if (!engine) return;
@@ -182,6 +198,7 @@ export default function App() {
           </button>
         </li>)}</ol>}
     </section>
-    <p className="footnote">Historik och minne sparas lokalt på den här enheten. Vetenskapliga uttryck använder samma Rust-motor som standardläget.</p>
+    <p className="footnote">Historik, minne och inställningar sparas endast på den här enheten. Efter första lyckade hämtningen fungerar PWA:n även utan nätverk.</p>
+    <button type="button" className="text-button clear-local" onClick={clearLocalData}>Rensa alla lokala kalkylatordata</button>
   </main>;
 }

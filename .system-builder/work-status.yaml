@@ -1,20 +1,20 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-005
-in_progress: DEV-005
+selected_step: DEV-006
+in_progress: DEV-006
 completed_steps:
   - DEV-001
   - DEV-002
   - DEV-003
   - DEV-004
+  - DEV-005
 next:
-  recommended: DEV-005
+  recommended: DEV-006
   action: verify
 verification:
   dev_001:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42278399520
     status: pass
-    browser_offline: deferred_to_DEV-006
   dev_002:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42282466158
     status: pass
@@ -25,11 +25,16 @@ verification:
     ci_run: https://github.com/erland/rust-calculator/actions/runs/42287579719
     status: pass
   dev_005:
-    jest_ui: pending_ci
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42292306538
+    status: pass
+  dev_006:
+    jest_storage: pending_ci
+    manifest_and_offline_playwright: pending_ci
+    wasm_precache: pending_ci
     web_build: pending_ci
     desktop_smoke: pending_ci
-    browser_e2e: pending_browser
 notes:
-  - DEV-004 was merged after passing all four CI jobs.
-  - DEV-005 adds scientific keypad and DEG/RAD selection, while keeping the shared Rust/Wasm engine.
-  - Do not complete DEV-005 before verification of this revision.
+  - DEV-005 is merged with CI #19 passing.
+  - DEV-006 adds browser-verified offline behaviour, Wasm precache, and locally persisted mode/angle preference.
+  - DEV-006 must not be completed before browser offline tests and all required CI jobs pass.
+  - Portable Windows/macOS packaging is handled by DEV-007.
