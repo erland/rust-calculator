@@ -1,40 +1,31 @@
 schema_version: 1
 phase: implementation
-selected_step: DEV-006
-in_progress: DEV-006
+selected_step: DEV-007
+in_progress: DEV-007
 completed_steps:
   - DEV-001
   - DEV-002
   - DEV-003
   - DEV-004
   - DEV-005
+  - DEV-006
 next:
-  recommended: DEV-006
+  recommended: DEV-007
   action: verify
 verification:
-  dev_001:
-    ci_run: https://github.com/erland/rust-calculator/actions/runs/42278399520
-    status: pass
-  dev_002:
-    ci_run: https://github.com/erland/rust-calculator/actions/runs/42282466158
-    status: pass
-  dev_003:
-    ci_run: https://github.com/erland/rust-calculator/actions/runs/42284720443
-    status: pass
-  dev_004:
-    ci_run: https://github.com/erland/rust-calculator/actions/runs/42287579719
-    status: pass
-  dev_005:
-    ci_run: https://github.com/erland/rust-calculator/actions/runs/42292306538
-    status: pass
   dev_006:
-    jest_storage: pending_ci
-    manifest_and_offline_playwright: pending_ci
-    wasm_precache: pending_ci
-    web_build: pending_ci
-    desktop_smoke: pending_ci
+    ci_run: https://github.com/erland/rust-calculator/actions/runs/42295964078
+    status: pass
+    playwright_offline: pass
+  dev_007:
+    windows_x64_build_zip_sha256: pending_ci
+    macos_arm64_app_zip_sha256: pending_ci
+    macos_x64_app_zip_sha256: pending_ci
+    ordinary_user_windows_launch: pending_manual
+    ordinary_user_macos_arm64_launch: pending_manual
+    ordinary_user_macos_x64_launch: pending_manual
 notes:
-  - DEV-005 is merged with CI #19 passing.
-  - DEV-006 adds browser-verified offline behaviour, Wasm precache, and locally persisted mode/angle preference.
-  - DEV-006 must not be completed before browser offline tests and all required CI jobs pass.
-  - Portable Windows/macOS packaging is handled by DEV-007.
+  - DEV-006 merged after all five jobs passed CI #22, including offline Chromium tests.
+  - DEV-007 produces PR-verifiable portable ZIP artifacts and SHA-256 digests.
+  - Running without admin rights on locked-down end-user machines cannot be proven by a CI build alone.
+  - Do not mark DEV-007 complete until necessary real-world acceptance is confirmed or recorded as an explicit release blocker.
