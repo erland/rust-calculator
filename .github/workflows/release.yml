@@ -1,0 +1,128 @@
+name: Release candidate (DEV-008)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/workflows/portable-desktop.yml'
+      - 'scripts/verify_release_assets.py'
+      - 'scripts/__tests__/**'
+      - 'apps/web/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release candidate version (example: v0.1.0-rc1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    uses: ./.github/workflows/portable-desktop.yml
+
+  pwa:
+    name: Build and browser-test PWA archive
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Package production PWA with checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../../portable-output
+          (cd dist && zip -q -r ../../../portable-output/kalkylator-pwa.zip .)
+          (cd ../../portable-output && sha256sum kalkylator-pwa.zip > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kalkylator-pwa-portable
+          path: portable-output/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: pwa-release-browser-test-results
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          if-no-files-found: ignore
+
+  assemble:
+    name: Verify ZIP archives and create release candidate
+    needs: [desktop, pwa]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run packaging verifier unit tests
+        run: python3 -m unittest discover -s scripts/__tests__ -p 'test_*.py' -v
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kalkylator-*-portable
+          path: staging
+          merge-multiple: false
+      - name: Verify each checksum, inspect ZIP entries and aggregate assets
+        run: python3 scripts/verify_release_assets.py staging release-assets
+      - name: Verify aggregated SHA256 manifest
+        run: cd release-assets && sha256sum --check SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kalkylator-release-assets
+          path: release-assets/*
+          if-no-files-found: error
+
+  draft-release:
+    name: Create draft GitHub Release only when manually dispatched from main
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: assemble
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: kalkylator-release-assets
+          path: release-assets
+      - name: Validate tag and ensure this is a new release
+        shell: bash
+        env:
+          TAG: ${{ inputs.version_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]; then
+            echo "Only release candidate tags like v0.1.0-rc1 are permitted" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists for $TAG; refusing to replace it" >&2
+            exit 1
+          fi
+          (cd release-assets && sha256sum --check SHA256SUMS.txt)
+      - name: Create draft release with four ZIPs and consolidated checksums
+        env:
+          TAG: ${{ inputs.version_tag }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" release-assets/*.zip release-assets/SHA256SUMS.txt \
+            --draft --title "Kalkylator $TAG (candidate)" \
+            --notes-file docs/release-notes.md \
+            --target "$GITHUB_SHA"
