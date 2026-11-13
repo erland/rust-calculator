@@ -110,15 +110,8 @@ jobs:
           archive="../../portable-output/kalkylator-macos-${{ matrix.arch }}-portable.zip"
           # ditto preserves .app structure, executable bits and symlinks.
           ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
-          unzip -Z1 "$archive" | grep -q '^Kalkylator.app/Contents/Info.plist > "../../portable-output/SHA256SUMS.txt"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kalkylator-macos-${{ matrix.arch }}-portable
-          path: portable-output/*
-          if-no-files-found: error
-
-          # Re-extract the actual distributed ZIP, then verify its signature
-          # and native architecture again after round-tripping through ditto.
+          unzip -Z1 "$archive" | grep -q '^Kalkylator.app/Contents/Info.plist$'
+          # Re-extract the distributed ZIP and verify its signature and architecture.
           extracted="$RUNNER_TEMP/kalkylator-verify-${{ matrix.arch }}"
           mkdir -p "$extracted"
           ditto -x -k "$archive" "$extracted"
