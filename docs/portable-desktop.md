@@ -16,7 +16,28 @@ Dessa ZIP-paket innehåller en traditionell desktopapplikation som kan packas up
 3. Packa upp ZIP-filen med Finder/Archive Utility och flytta `Kalkylator.app` till en mapp som användaren äger. `/Applications` är valfritt.
 4. Öppna `Kalkylator.app` med Finder.
 
-**Förutsättningar:** macOS inkluderar WebKit. Programmet är ännu inte signerat eller notariserat för normal distribution. Gatekeeper eller MDM kan därför blockera programmet eller kräva särskilt godkännande. Be inte användare att generellt stänga av Gatekeeper eller arbetsplatsens säkerhetskontroller.
+**Förutsättningar:** macOS inkluderar WebKit. DEV-007-testpaketen använder nu **ad hoc-kodsignering** (`signingIdentity: "-"`), som gör att även ARM64-koden har en kontrollerbar lokal signatur. **Det är inte en betrodd Developer ID-signatur, och paketet är inte notariserat av Apple.** Gatekeeper eller MDM kan därför fortfarande stoppa appen. Be inte användare att generellt stänga av Gatekeeper eller arbetsplatsens säkerhetskontroller. Intel x64-versionen kan behöva Rosetta på Apple Silicon.
+
+### Diagnos vid "damaged" eller "Apple could not verify"
+Testa först med en **ny nedladdning** och rätt ZIP för din processor. Kontrollera SHA-256 mot medföljande kontrollsumma, och packa upp med Finder/Archive Utility, utan att ändra innehållet i `.app`.
+
+Kör följande i Terminal på Mac, och ersätt sökvägen med den faktiska platsen där du packade upp appen:
+
+```sh
+APP="$HOME/Downloads/Kalkylator.app"
+file "$APP/Contents/MacOS/"*
+codesign --verify --deep --strict --verbose=2 "$APP"
+codesign --display --verbose=2 "$APP"
+spctl --assess --type execute --verbose=4 "$APP"
+xattr -l "$APP"
+```
+
+- Misslyckad `codesign --verify` indikerar ogiltig signatur eller skadat/förändrat appinnehåll. Då ska paketet **inte** köras; rapportera felet och kontrollera ZIP-integriteten.
+- Lyckad `codesign --verify` men nekad `spctl` kan vara väntat för en ad hoc-signerad, icke-notariserad testapp. Det betyder inte i sig att appen är skadad.
+- Om en **verifierad och förväntad** testapp endast blockeras av Gatekeeper kan du prova macOS **Systeminställningar → Integritet och säkerhet → Öppna ändå**, när knappen finns tillgänglig. Ändra inte systemets globala Gatekeeper-inställningar och kör inte kommandon som tar bort karantän från okända appar.
+- Om macOS uttryckligen rapporterar skadlig kod eller ändrat appinnehåll, avbryt testet. Lita inte enbart på att det är en egenbyggd app.
+
+För normal distribution utan dessa varningar behövs **Developer ID Application-signering och notarisering** hos Apple. Ad hoc-signering är endast till för kontrollerade utvecklings- och acceptanstester.
 
 ## Vad CI kontrollerar
 - Den inbyggda Rust/Tauri-applikationen kompileras i faktiska Windows- och macOS-runners.
